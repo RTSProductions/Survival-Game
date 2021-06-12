@@ -1,2 +1,2 @@
-# SurvivalGame
+# Survival Game
 A survival game
