@@ -6,6 +6,8 @@ using UnityEngine;
 [RequireComponent(typeof(MeshRenderer))]
 public class MeshGenerator : MonoBehaviour
 {
+    public int index = 0;
+
     Mesh mesh;
     Vector3[] vertices;
     Color[] colors;
@@ -16,6 +18,10 @@ public class MeshGenerator : MonoBehaviour
 
     public int zSize = 20;
 
+    int maxDist = 0;
+
+    GameObject player;
+
     float minHeight;
 
     float maxHeight;
@@ -23,7 +29,25 @@ public class MeshGenerator : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        if (zSize == xSize)
+        {
+            maxDist = xSize * 4;
+        }
+        else
+        {
+            if (zSize > xSize)
+            {
+                maxDist = zSize * 4;
+            }
+            else
+            {
+                maxDist = xSize * 4;
+            }
+        }
+
         mesh = new Mesh();
+
+        player = GameObject.Find("Player").gameObject;
 
         GetComponent<MeshFilter>().mesh = mesh;
 
@@ -34,13 +58,31 @@ public class MeshGenerator : MonoBehaviour
 
         CreatShape();
 
-        UpdatdMesh();
+        float distToPlayer = Vector3.Distance(transform.position, player.transform.position);
+
+        if (distToPlayer >= maxDist)
+        {
+            GetComponent<MeshRenderer>().enabled = false;
+        }
+        else
+        {
+            GetComponent<MeshRenderer>().enabled = true;
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
+        float distToPlayer = Vector3.Distance(transform.position, player.transform.position);
 
+        if (distToPlayer >= maxDist)
+        {
+            GetComponent<MeshRenderer>().enabled = false;
+        }
+        else
+        {
+            GetComponent<MeshRenderer>().enabled = true;
+        }
     }
 
     public void UpdateColors()
@@ -57,14 +99,25 @@ public class MeshGenerator : MonoBehaviour
             }
         }
     }
-    void CreatShape()
+    public void CreatShape()
     {
+        if (mesh == null)
+        {
+            mesh = new Mesh();
+
+            GetComponent<MeshFilter>().mesh = mesh;
+
+            if (TryGetComponent<MeshCollider>(out MeshCollider meshCollider))
+            {
+                meshCollider.sharedMesh = mesh;
+            }
+        }
         vertices = new Vector3[(xSize + 1) * (zSize + 1)];
         for (int i = 0, z = 0; z <= zSize; z++)
         {
             for (int x = 0; x <= xSize; x++)
             {
-                float y = Mathf.PerlinNoise(x * .3f, z * .3f) * 2;
+                float y = Mathf.PerlinNoise((x + transform.position.x) * .3f, (z + transform.position.z) * .3f) * 2;
                 vertices[i] = new Vector3(x, y, z);
                 i++;
                 if (y > maxHeight)
@@ -100,6 +153,10 @@ public class MeshGenerator : MonoBehaviour
             }
             vert++;
         }
+
+        UpdateColors();
+
+        UpdatdMesh();
     }
 
     void UpdatdMesh()
@@ -113,6 +170,11 @@ public class MeshGenerator : MonoBehaviour
         mesh.RecalculateNormals();
 
         mesh.colors = colors;
+
+        if (TryGetComponent<MeshCollider>(out MeshCollider meshCollider))
+        {
+            meshCollider.sharedMesh = mesh;
+        }
     }
 
     private void OnDrawGizmos()
@@ -123,7 +185,7 @@ public class MeshGenerator : MonoBehaviour
             {
                 Gizmos.color = Color.red;
 
-                Gizmos.DrawSphere(vertices[i], .1f);
+                Gizmos.DrawSphere(new Vector3(vertices[i].x + transform.position.x, vertices[i].y, vertices[i].z + transform.position.z), .1f);
             }
         }
     }
